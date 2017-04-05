@@ -64,8 +64,7 @@ class LinearRegression:
         """
         # Check if the model is trained
         if self.w is None:
-            raise ValueError('Model is not trained. Please use fit.')
-        
+            raise ValueError('Model is not trained. Please use fit.')        
         
         # Make X a matrix so math is easier to read
         X = np.matrix(X)
