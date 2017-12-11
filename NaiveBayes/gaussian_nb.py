@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class GaussianNaiveBayes:
     """
     Gaussian Naive Bayes
@@ -28,7 +31,7 @@ class GaussianNaiveBayes:
         self.priors = {}
         self.mu_vector = {}
         self.sigma_vector = {}
-        for c in classes:           
+        for c in self.classes:           
             # Priors
             self.priors[c] = np.mean(y == c)         
             
@@ -54,7 +57,7 @@ class GaussianNaiveBayes:
             scores = []
             for c in self.classes:
                 prior = self.priors[c]
-                likelihood = np.prod([gaussian(x_i, mu, sigma) for x_i, mu, sigma in zip(x, self.mu_vector[c], self.sigma_vector[c])])
+                likelihood = np.prod([self._gaussian(x_i, mu, sigma) for x_i, mu, sigma in zip(x, self.mu_vector[c], self.sigma_vector[c])])
                 score = prior * likelihood
                 scores.append((c, score))
                 
