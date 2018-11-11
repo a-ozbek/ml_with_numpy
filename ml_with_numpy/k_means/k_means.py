@@ -32,7 +32,6 @@ class KMeans:
             progress = list()
         
         # iterations
-        iterations = 0
         for _ in tqdm_notebook(range(self.max_iter)):
             # For each point, find closest centroid
             clusters = defaultdict(list)
