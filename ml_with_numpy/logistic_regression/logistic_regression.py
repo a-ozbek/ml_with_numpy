@@ -1,114 +1,70 @@
 import numpy as np
-from tqdm import trange
+from tqdm import tqdm
 
 
 class LogisticRegression:
+    """Logistic Regression
     """
-    Logistic Regression
-    Solving with gradient descent
-    with batch size of 1
-    Only supports binary classification
-    """    
     
-    epsilon = 1e-15
-    
-    def __init__(self, learning_rate=0.1):
-        self.w = None  # weights 
-        self.b = None  # bias
+    def __init__(self, num_iterations, learning_rate=0.1, silent=True):
+        self.num_iterations = num_iterations
         self.learning_rate = learning_rate
+        self.silent = silent
+        self.w = None
+        self.b = None
         
     @staticmethod
     def sigmoid(x):
         return 1.0 / (1.0 + np.exp(-x))
     
-    @staticmethod
-    def d_sigmoid(x):
+    def fit(self, X, y, return_training_history=False):
+        """Fit method
+        
+        `y` must a one-dimensional Numpy array consisting only of 0 and 1
         """
-        Derivative of sigmoid
-        """
-        return LogisticRegression.sigmoid(x) * (1.0 - LogisticRegression.sigmoid(x))  
-       
-    def fit(self, X, Y, epochs=1, silent=True):
-        # get input dimensionality
-        input_dimensionality = X.shape[1]
+        # --- input check ---
+        if not X.ndim == 2:
+            raise ValueError("`X` must be a 2 dimensional Numpy array")
         
-        # initialize w and b
-        self.w = (np.random.rand(input_dimensionality) * 2) - 1.0
-        self.b = (np.random.rand() * 2) - 1.0
-        
-        # start gradient descent
-        for n_epoch in range(epochs):
-            t = trange(len(X), desc='Epoch: {n_epoch}, Training E:'.format(n_epoch=str(n_epoch)), leave=True)
-            for x, y, t_i in zip(X, Y, t):
-                # do forward pass
-                output = self.sigmoid((x * self.w).sum() + self.b)                 
-                output = np.clip(output, a_min=self.epsilon, a_max=1.0 - self.epsilon)
-                
-                # calculate gradient
-                # gradient (dE/dw) = dE/doutput * doutput/dalpha * dalpha/dw               
-                dE_doutput = 2 * (y - output) * -1  # MSE
-                doutput_dalpha = output * (1.0 - output)
-                dalpha_dw = x
-                dE_dw = dE_doutput * doutput_dalpha * dalpha_dw  # gradient
-                
-                # gradient (dE/db) = dE/doutput * doutput/dalpha
-                dE_db = dE_doutput * doutput_dalpha
-
-                # update parameters
-                self.w = self.w - self.learning_rate * dE_dw
-                self.b = self.b - self.learning_rate * dE_db
-               
-                
-                if not silent:
-                    # calculate_error
-                    error = ((self.predict(X) - Y) ** 2).mean()
-                    t.set_description("Epoch: {n_epoch}, Training E: {error}".format(n_epoch=str(n_epoch+1), 
-                                                                                     error=str(error)))
-                    t.refresh()
-                      
-    def predict(self, X):
-        if self.w is None:
-            raise ValueError("Please call fit data")
-        
-        predictions = list()
-        for x in X:
-            p = (x * self.w).sum() + self.b
-            p = self.sigmoid(p)
-            predictions.append(p)
+        if not y.ndim == 1:
+            raise ValueError("`y` must be 1 dimensional Numpy array")
             
-        return np.array(predictions)
-
-
-if __name__ == "__main__":
-    from sklearn.datasets import load_breast_cancer
-    from sklearn.model_selection import train_test_split
-    from sklearn.preprocessing import MinMaxScaler
-    from sklearn import metrics
+        y = y.reshape(-1, 1)
+            
+        # --- initialize params ---
+        self.w = np.random.rand(X.shape[1], 1) * 2 - 1.0
+        self.b = np.random.rand(1, 1) * 2 - 1.0
+        if return_training_history is True:
+            w_history = list()
+            b_history = list()
+        
+        # --- fit ---
+        for i in tqdm(range(self.num_iterations), disable=self.silent):
+            # forward
+            y_pred = self.predict(X)
+            
+            # backward (update model params)
+            # - calculate grads
+            w_grad = np.mean(-1 * (y - y_pred) * X, axis=0, keepdims=True).T
+            b_grad = np.mean(-1 * (y - y_pred), axis=0, keepdims=True)
+            # - update params
+            self.w = self.w - self.learning_rate * w_grad
+            self.b = self.b - self.learning_rate * b_grad  
+            # - record
+            if return_training_history is True:
+                w_history.append(self.w)
+                b_history.append(self.b)
+        
+        if return_training_history is True:
+            return w_history, b_history
     
-    # get toy data
-    X, y = load_breast_cancer(return_X_y=True)
-    X_train, X_test, y_train, y_test = train_test_split(X, y)
-    print('X_train.shape:', X_train.shape)
-    print('X_test.shape:', X_test.shape)
-    print('y_train.shape:', y_train.shape)
-    print('y_test.shape:', y_test.shape)
-    
-    # scale data
-    min_max_scaler = MinMaxScaler(feature_range=(-1, 1))
-    X_train = min_max_scaler.fit_transform(X_train)
-    X_test = min_max_scaler.transform(X_test)
-    
-    # get model
-    model = LogisticRegression(learning_rate=0.1)
-    
-    # fit
-    model.fit(X_train, y_train, epochs=5, silent=False)
-    
-    # results
-    print(metrics.classification_report(y_test, model.predict(X_test) > 0.5))
-    print(metrics.confusion_matrix(y_test, model.predict(X_test) > 0.5))
-    
-    
-    
-
-
+    def predict(self, x):
+        # --- input check ---
+        if not x.ndim == 2:
+            raise ValueError("`x` must be a 2 dimensional Numpy array. \
+                                If it is only a single sample, please reshape it via x.reshape(1, -1)")
+        
+        # --- predict ---
+        y = np.matmul(x, self.w) + self.b
+        y = self.sigmoid(y)
+        return y
